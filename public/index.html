@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>20-Day Timer</title>
+
+  <style>
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: center;
+      padding-top: 40px;
+    }
+
+    .container {
+      width: 380px;
+      background: #020617;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.6);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    #timer {
+      font-size: 2.2rem;
+      text-align: center;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    h2 {
+      margin-top: 30px;
+      font-size: 1.2rem;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 10px;
+    }
+
+    li {
+      padding: 8px;
+      background: #020617;
+      border-bottom: 1px solid #1e293b;
+      font-size: 0.9rem;
+    }
+
+    .expired {
+      color: #ef4444;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>20-Day Countdown</h1>
+
+    <div id="timer">Loading...</div>
+
+    <button id="resetBtn">Reset</button>
+
+    <h2>Intervals (Laps)</h2>
+    <ul id="laps"></ul>
+  </div>
+
+<script>
+const API = "/api/timer";
+const TWENTY_DAYS = 20 * 24 * 60 * 60 * 1000;
+
+let events = [];
+
+async function fetchEvents() {
+  const res = await fetch(API);
+  events = await res.json();
+  renderLaps();
+}
+
+function format(ms) {
+  const d = Math.floor(ms / 86400000);
+  const h = Math.floor(ms / 3600000) % 24;
+  const m = Math.floor(ms / 60000) % 60;
+  const s = Math.floor(ms / 1000) % 60;
+  return `${d}d ${h}h ${m}m ${s}s`;
+}
+
+function updateTimer() {
+  if (!events.length) return;
+
+  const start = events[events.length - 1].timestamp;
+  const elapsed = Date.now() - start;
+  const remaining = TWENTY_DAYS - elapsed;
+
+  const timerEl = document.getElementById("timer");
+
+  if (remaining <= 0) {
+    timerEl.textContent = "Expired";
+    timerEl.classList.add("expired");
+  } else {
+    timerEl.textContent = format(remaining);
+    timerEl.classList.remove("expired");
+  }
+}
+
+function renderLaps() {
+  const ul = document.getElementById("laps");
+  ul.innerHTML = "";
+
+  for (let i = 1; i < events.length; i++) {
+    const start = events[i - 1].timestamp;
+    const end = events[i].timestamp;
+
+    const li = document.createElement("li");
+    li.textContent = `Lap ${i}: ${format(end - start)}`;
+    ul.appendChild(li);
+  }
+}
+
+document.getElementById("resetBtn").addEventListener("click", async () => {
+  await fetch(API, { method: "POST" });
+  await fetchEvents();
+});
+
+// init
+fetchEvents();
+setInterval(updateTimer, 1000);
+</script>
+
+</body>
+</html>
